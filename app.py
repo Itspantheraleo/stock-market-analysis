@@ -9,6 +9,9 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense
 from keras.optimizers import Adam
 import os
+import matplotlib
+
+matplotlib.use('Agg')
 
 # Get the current working directory and join it with the template folder path
 current_dir = os.getcwd()  # Gets the current working directory
@@ -180,7 +183,7 @@ def get_data():
         plot_paths[ticker] = (close_plot, volume_plot)
 
     print("Rendering results page")
-    return render_template('results.html', stock_data=stock_data, predictions=predictions, plot_paths=plot_paths)
+    return render_template('results.html', stock_data=stock_data, predictions=predictions, plot_paths=plot_paths,ticker=ticker,data_empty = stock_data['data'].empty if 'data' in stock_data and isinstance(stock_data['data'], pd.DataFrame) else True)
 
 # Start the Flask app using Waitress
 if __name__ == '__main__':
