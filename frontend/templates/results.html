@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .no-data {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Analysis Results</h1>
+    
+    {% for ticker, data in stock_data.items() %}
+    <h2>Results for {{ ticker }}</h2>
+    
+    {% if not data %}
+        <p class="no-data">No data found for {{ ticker }} in the given date range.</p>
+    {% else %}
+        <h3>Historical Data:</h3>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Open</th>
+                <th>High</th>
+                <th>Low</th>
+                <th>Close</th>
+                <th>Volume</th>
+            </tr>
+            {% for row in data %}
+                <tr>
+                    <td>{{ row['date'] }}</td>
+                    <td>{{ row['open'] }}</td>
+                    <td>{{ row['high'] }}</td>
+                    <td>{{ row['low'] }}</td>
+                    <td>{{ row['close'] }}</td>
+                    <td>{{ row['volume'] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <h3>Plots:</h3>
+        <img src="{{ url_for('static', filename=f'plots/{ticker}_close_price.png') }}" alt="Close Price Plot">
+        <img src="{{ url_for('static', filename=f'plots/{ticker}_volume.png') }}" alt="Volume Plot">
+
+    {% endif %}
+{% endfor %}
+
+</body>
+</html>
