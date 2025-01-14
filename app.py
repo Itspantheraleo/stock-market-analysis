@@ -73,8 +73,8 @@ def predict_stock_price(model, X_test, scaler):
 def fetch_data_from_db(ticker):
     print(f"Fetching data from database for ticker: {ticker}")
     try:
-        conn = sqlite3.connect('stock_data.db')
-        query = f"SELECT * FROM stock_prices WHERE ticker = ?"
+        conn = sqlite3.connect('stock_data4.db')
+        query = f"SELECT * FROM stock_prices WHERE ticker = ircon.NS"
         data = pd.read_sql(query, conn, params=(ticker,), parse_dates=['date'])
         conn.close()
 

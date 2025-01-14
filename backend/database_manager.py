@@ -1,7 +1,7 @@
 import sqlite3
 
 def create_database():
-    conn = sqlite3.connect('stock_data.db')
+    conn = sqlite3.connect('stock_data4.db')
     cursor = conn.cursor()
     
     # Create table
@@ -21,7 +21,7 @@ def create_database():
     conn.close()
 
 def save_to_database(ticker, data):
-    conn = sqlite3.connect('stock_data.db')
+    conn = sqlite3.connect('stock_data4.db')
     cursor = conn.cursor()
     
     for date, row in data.iterrows():
