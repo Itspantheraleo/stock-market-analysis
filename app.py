@@ -9,43 +9,49 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense
 from keras.optimizers import Adam
 import os
-import matplotlib
+from sklearn.model_selection import train_test_split
 
-matplotlib.use('Agg')
-
-# Get the current working directory and join it with the template folder path
+# Initialize Flask app with the dynamically set template folder
 current_dir = os.getcwd()  # Gets the current working directory
 template_folder = os.path.join(current_dir, 'frontend', 'templates')
 static_folder = os.path.join(current_dir, 'frontend', 'static')
 
-# Initialize Flask app with the dynamically set template folder
 app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
 
 # Function to preprocess the data for LSTM
 def preprocess_data(data, time_step=60):
-    print(f"Preprocessing data for LSTM with time_step={time_step}")
+    print("Preprocessing data for LSTM with time_step=" + str(time_step))
     print("Initial data:")
     print(data.head())
 
-    data = data[['date', 'close']]
-    data.set_index('date', inplace=True)
-
-    # Normalize the closing prices
+    # Selecting the 'close' price as the feature for prediction
+    data = data[['date', 'close']]  # Ensure only 'close' is included
+    data = data.set_index('date')
+    
+    # Normalizing the data
     scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled_data = scaler.fit_transform(data[['close']].values)
+    data_scaled = scaler.fit_transform(data[['close']])
 
-    # Prepare data for LSTM
+    # Creating the dataset for LSTM
     X, y = [], []
-    for i in range(time_step, len(scaled_data)):
-        X.append(scaled_data[i-time_step:i, 0])
-        y.append(scaled_data[i, 0])
+    for i in range(time_step, len(data_scaled)):
+        X.append(data_scaled[i - time_step:i, 0])  # Using the previous 'time_step' closes as features
+        y.append(data_scaled[i, 0])  # Using the next close as the label
 
     X, y = np.array(X), np.array(y)
 
-    # Reshaping X to be 3D as required by LSTM (samples, time steps, features)
+    print(f"X shape before reshape: {X.shape}")
+
+    if X.shape[0] == 0:
+        print("Not enough data for training")
+        return np.array([]), np.array([]), scaler
+
+    # Reshaping X to 3D for LSTM: (samples, timesteps, features)
     X = np.reshape(X, (X.shape[0], X.shape[1], 1))
 
-    print(f"Data preprocessed. Shapes - X: {X.shape}, y: {y.shape}")
+    print(f"X shape after reshape: {X.shape}")
+    print(f"y shape: {y.shape}")
+
     return X, y, scaler
 
 # Function to build and train the LSTM model
@@ -70,12 +76,13 @@ def predict_stock_price(model, X_test, scaler):
     return predicted_prices
 
 # Function to fetch data from SQLite database
-def fetch_data_from_db(ticker):
+def fetch_data_from_db(ticker, start_date, end_date):
     print(f"Fetching data from database for ticker: {ticker}")
     try:
-        conn = sqlite3.connect('stock_data4.db')
-        query = f"SELECT * FROM stock_prices WHERE ticker = ircon.NS"
-        data = pd.read_sql(query, conn, params=(ticker,), parse_dates=['date'])
+        conn = sqlite3.connect('stock_data.db')
+        query = f"""SELECT * FROM stock_prices WHERE ticker = ? AND date BETWEEN ? AND ?"""
+        data = pd.read_sql(query, conn, params=(ticker, start_date, end_date), parse_dates=['date'])
+
         conn.close()
 
         if data.empty:
@@ -154,14 +161,20 @@ def get_data():
 
     for ticker in tickers:
         ticker = ticker.strip()  # Remove any leading/trailing spaces
-        data = fetch_data_from_db(ticker)  # Fetch data from the database
+        data = fetch_data_from_db(ticker, start_date, end_date)  # Fetch data from the database
 
         if data.empty:
             print(f"No data available for ticker: {ticker}")
+            stock_data[ticker] = data  # Store empty data for this ticker
             continue
 
         # Preprocess data for LSTM
         X, y, scaler = preprocess_data(data)
+
+        if X.size == 0 or y.size == 0:  # If there's no valid data after preprocessing
+            print(f"Not enough data for training model for ticker: {ticker}")
+            stock_data[ticker] = data  # Store empty data for this ticker
+            continue
 
         # Split data into training and testing sets
         train_size = int(len(X) * 0.8)
@@ -183,7 +196,7 @@ def get_data():
         plot_paths[ticker] = (close_plot, volume_plot)
 
     print("Rendering results page")
-    return render_template('results.html', stock_data=stock_data, predictions=predictions, plot_paths=plot_paths,ticker=ticker,data_empty = stock_data['data'].empty if 'data' in stock_data and isinstance(stock_data['data'], pd.DataFrame) else True)
+    return render_template('results.html', stock_data=stock_data, predictions=predictions, plot_paths=plot_paths, data_empty={ticker: data.empty for ticker, data in stock_data.items()})
 
 # Start the Flask app using Waitress
 if __name__ == '__main__':

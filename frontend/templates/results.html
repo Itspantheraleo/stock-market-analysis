@@ -41,9 +41,10 @@
     {% for ticker, data in stock_data.items() %}
     <h2>Results for {{ ticker }}</h2>
     
-    {% if data_empty %}
-    <p>No data available for the selected date range.</p>
+    {% if data_empty[ticker] %}
+    <p class="no-data">No data available for the selected date range.</p>
     {% else %}
+
         <h3>Historical Data:</h3>
         <table>
             <tr>
@@ -70,8 +71,20 @@
         <img src="{{ url_for('static', filename='plots/'+ticker+'_close_price.png') }}" alt="Close Price Plot">
         <img src="{{ url_for('static', filename='plots/'+ticker+'_volume.png') }}" alt="Volume Plot">
 
+        <h3>Predicted Prices:</h3>
+        <table>
+            <tr>
+                <th>Date</th>
+                <th>Predicted Close Price</th>
+            </tr>
+            {% for i in range(predictions[ticker].shape[0]) %}
+                <tr>
+                    <td>{{ stock_data[ticker].iloc[i + stock_data[ticker]|length - predictions[ticker]|length]["date"] }}</td>
+                    <td>{{ predictions[ticker][i][0] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
     {% endif %}
-{% endfor %}
-
+    {% endfor %}
 </body>
 </html>
